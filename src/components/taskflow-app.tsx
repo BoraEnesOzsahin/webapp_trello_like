@@ -120,7 +120,7 @@ export function TaskFlowApp() {
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authForm, setAuthForm] = useState<AuthFormState>({
-    name: '',
+    username: '',
     email: '',
     password: '',
   });
