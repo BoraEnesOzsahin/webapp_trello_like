@@ -762,7 +762,7 @@ export function TaskFlowApp() {
             </div>
           </SortableContext>
 
-          <DragOverlay>
+          <DragOverlay adjustScale={false}>
             {draggedData?.type === 'card' && activeCardPreview ? (
               <CardPreview card={activeCardPreview as CardRecord} />
             ) : draggedData?.type === 'column' && activeCardPreview ? (
