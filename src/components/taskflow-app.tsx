@@ -146,7 +146,7 @@ export function TaskFlowApp() {
       if (loadedSession.userId) {
         const loadedWorkspace = readStorage<WorkspaceState | null>(workspaceStorageKey(loadedSession.userId), null);
         const fallbackWorkspace =
-          loadedWorkspace ?? defaultWorkspace(loadedUsers.find((user) => user.id === loadedSession.userId)?.name ?? 'User');
+          loadedWorkspace ?? defaultWorkspace(loadedUsers.find((user) => user.id === loadedSession.userId)?.username ?? 'User');
 
         setWorkspace({
           ...fallbackWorkspace,
