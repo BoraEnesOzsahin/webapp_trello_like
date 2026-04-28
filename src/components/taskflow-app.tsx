@@ -214,6 +214,58 @@ export function TaskFlowApp() {
     }
   }, [mounted, sessionUserId, workspace]);
 
+  // Subscribe to Realtime updates for shared workspaces
+  useEffect(() => {
+    if (!useServer || !workspace?.teamId || !workspace?.isShared) {
+      return;
+    }
+
+    let unsubscribe: (() => void) | null = null;
+
+    (async () => {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        );
+
+        const channel = supabase
+          .channel(`workspace:${workspace.teamId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'shared_workspaces',
+              filter: `id=eq.${workspace.teamId}`,
+            },
+            (payload: any) => {
+              if (payload.new?.data) {
+                const updatedWorkspace = payload.new.data as WorkspaceState;
+                setWorkspace(updatedWorkspace);
+              }
+            },
+          )
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              console.log(`Subscribed to workspace ${workspace.teamId}`);
+            }
+          });
+
+        unsubscribe = () => channel.unsubscribe();
+      } catch (err) {
+        console.error('Failed to set up Realtime listener:', err);
+      }
+    })();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [workspace?.teamId, workspace?.isShared, useServer]);
+
   const currentUser = useMemo(
     () => users.find((user) => user.id === sessionUserId) ?? null,
     [sessionUserId, users],
