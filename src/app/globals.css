@@ -432,6 +432,12 @@ textarea {
   pointer-events: none;
 }
 
+.card-item.drag-preview {
+  box-shadow: 0 8px 24px rgba(126, 224, 199, 0.3);
+  pointer-events: none;
+  opacity: 0.95;
+}
+
 .card-handle {
   width: 34px;
   height: 34px;

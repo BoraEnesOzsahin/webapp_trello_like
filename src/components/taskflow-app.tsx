@@ -764,7 +764,7 @@ export function TaskFlowApp() {
 
           <DragOverlay adjustScale={false}>
             {draggedData?.type === 'card' && activeCardPreview ? (
-              <CardPreview card={activeCardPreview as CardRecord} />
+              <CardPreview card={activeCardPreview as CardRecord} isDragging={true} />
             ) : draggedData?.type === 'column' && activeCardPreview ? (
               <ColumnPreview column={activeCardPreview as ColumnRecord} />
             ) : null}
@@ -863,9 +863,9 @@ function SortableCard({
   );
 }
 
-function CardPreview({ card }: { card: CardRecord }) {
+function CardPreview({ card, isDragging }: { card: CardRecord; isDragging?: boolean }) {
   return (
-    <article className="card-item preview">
+    <article className={`card-item ${isDragging ? 'drag-preview' : 'preview'}`}>
       <strong>{card.title}</strong>
       <p>{card.description || 'No description yet.'}</p>
     </article>
