@@ -131,7 +131,7 @@ export function TaskFlowApp() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 12 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 12 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 

@@ -373,6 +373,8 @@ textarea {
   gap: 0.75rem;
   background: linear-gradient(180deg, rgba(15, 23, 46, 0.92), rgba(9, 14, 28, 0.86));
   transition: transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 140ms ease, box-shadow 140ms ease;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .column-panel.dragging,
@@ -406,6 +408,9 @@ textarea {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.06);
   color: var(--muted);
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
 }
 
 .card-item {
@@ -417,6 +422,8 @@ textarea {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
   transition: transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 140ms ease, box-shadow 140ms ease;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .card-item.preview {
