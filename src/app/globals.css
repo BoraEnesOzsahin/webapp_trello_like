@@ -67,6 +67,28 @@ textarea {
   resize: vertical;
 }
 
+select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(7, 12, 24, 0.88);
+  color: var(--text);
+  padding: 0.85rem 1rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  cursor: pointer;
+}
+
+select:focus {
+  border-color: rgba(126, 224, 199, 0.55);
+  box-shadow: 0 0 0 4px rgba(126, 224, 199, 0.11);
+}
+
+select option {
+  background: #0a1020;
+  color: var(--text);
+}
+
 .loading-shell,
 .auth-shell,
 .workspace-shell {

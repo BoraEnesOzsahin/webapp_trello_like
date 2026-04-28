@@ -58,6 +58,7 @@ type CardDraft = {
   cardId: string | null;
   title: string;
   description: string;
+  assigneeId?: string;
 };
 
 type DragData = {
@@ -423,6 +424,7 @@ export function TaskFlowApp() {
       cardId: null,
       title: '',
       description: '',
+      assigneeId: undefined,
     });
   }
 
@@ -437,6 +439,7 @@ export function TaskFlowApp() {
       cardId: card.id,
       title: card.title,
       description: card.description,
+      assigneeId: card.assigneeId,
     });
   }
 
@@ -451,6 +454,7 @@ export function TaskFlowApp() {
 
     const title = cardDraft.title.trim() || 'Untitled card';
     const description = cardDraft.description.trim();
+    const assigneeName = cardDraft.assigneeId ? workspace.members?.find((m) => m.userId === cardDraft.assigneeId)?.username : undefined;
 
     setWorkspace({
       ...workspace,
@@ -471,14 +475,22 @@ export function TaskFlowApp() {
               return {
                 ...column,
                 cards: column.cards.map((card) =>
-                  card.id === cardDraft.cardId ? { ...card, title, description, updatedAt: nowIso() } : card,
+                  card.id === cardDraft.cardId ? 
+                    { ...card, title, description, assigneeId: cardDraft.assigneeId, assigneeName, updatedAt: nowIso() } 
+                    : card,
                 ),
               };
             }
 
             return {
               ...column,
-              cards: [...column.cards, createCard(title, description, currentUser!.id, currentUser!.username)],
+              cards: [...column.cards, 
+                {
+                  ...createCard(title, description, currentUser!.id, currentUser!.username),
+                  assigneeId: cardDraft.assigneeId,
+                  assigneeName,
+                }
+              ],
             };
           }),
         };
@@ -807,6 +819,8 @@ export function TaskFlowApp() {
           onDescriptionChange={(description) => setCardDraft((current) => (current ? { ...current, description } : current))}
           onSave={saveCardDraft}
           onTitleChange={(title) => setCardDraft((current) => (current ? { ...current, title } : current))}
+          onAssigneeChange={(assigneeId) => setCardDraft((current) => (current ? { ...current, assigneeId } : current))}
+          teamMembers={workspace?.members}
         />
       ) : null}
     </main>
@@ -929,12 +943,16 @@ function CardEditorModal({
   onDescriptionChange,
   onSave,
   onTitleChange,
+  onAssigneeChange,
+  teamMembers,
 }: {
   cardDraft: CardDraft;
   onCancel: () => void;
   onDescriptionChange: (description: string) => void;
   onSave: () => void;
   onTitleChange: (title: string) => void;
+  onAssigneeChange: (assigneeId: string | undefined) => void;
+  teamMembers?: Array<{ userId: string; username: string; role: string }>;
 }) {
   return (
     <div className="modal-backdrop" role="presentation" onClick={onCancel}>
@@ -961,11 +979,26 @@ function CardEditorModal({
         <label>
           Description
           <textarea
-            rows={6}
+            rows={5}
             value={cardDraft.description}
             onChange={(event) => onDescriptionChange(event.target.value)}
             placeholder="Add a crisp implementation note."
           />
+        </label>
+
+        <label>
+          Assign to
+          <select
+            value={cardDraft.assigneeId ?? ''}
+            onChange={(event) => onAssigneeChange(event.target.value || undefined)}
+          >
+            <option value="">Unassigned</option>
+            {teamMembers?.map((member) => (
+              <option key={member.userId} value={member.userId}>
+                {member.username}
+              </option>
+            ))}
+          </select>
         </label>
 
         <div className="modal-actions">
