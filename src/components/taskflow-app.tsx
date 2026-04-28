@@ -145,8 +145,9 @@ export function TaskFlowApp() {
 
       if (loadedSession.userId) {
         const loadedWorkspace = readStorage<WorkspaceState | null>(workspaceStorageKey(loadedSession.userId), null);
+        const ownerName = loadedUsers.find((user) => user.id === loadedSession.userId)?.username ?? 'User';
         const fallbackWorkspace =
-          loadedWorkspace ?? defaultWorkspace(loadedUsers.find((user) => user.id === loadedSession.userId)?.username ?? 'User');
+          loadedWorkspace ?? defaultWorkspace(ownerName, loadedSession.userId, false);
 
         setWorkspace({
           ...fallbackWorkspace,
@@ -269,7 +270,7 @@ export function TaskFlowApp() {
         createdAt: nowIso(),
       };
 
-      const seededWorkspace = defaultWorkspace(newUser.username);
+      const seededWorkspace = defaultWorkspace(newUser.username, newUser.id, false);
       const initialBoardId = seededWorkspace.boards[0]?.id ?? null;
 
       setUsers((current) => [...current, newUser]);
@@ -291,7 +292,7 @@ export function TaskFlowApp() {
     }
 
     const loadedWorkspace = readStorage<WorkspaceState | null>(workspaceStorageKey(user.id), null);
-    const fallbackWorkspace = loadedWorkspace ?? defaultWorkspace(user.username);
+    const fallbackWorkspace = loadedWorkspace ?? defaultWorkspace(user.username, user.id, false);
 
     setSessionUserId(user.id);
     setWorkspace({
@@ -700,6 +701,28 @@ export function TaskFlowApp() {
           <button className="secondary-button" onClick={createNewBoard} type="button">
             Add board
           </button>
+        </section>
+
+        <section className="sidebar-section">
+          <div className="section-title">Team Members</div>
+          <div className="members-list">
+            {workspace.members?.map((member) => (
+              <div key={member.userId} className="member-item">
+                <span className="member-name">{member.username}</span>
+                <span className="member-role">{member.role}</span>
+              </div>
+            ))}
+          </div>
+          {workspace.ownerId === currentUser?.id && (
+            <label className="inline-field">
+              <span>Invite by email</span>
+              <input
+                type="email"
+                placeholder="teammate@example.com"
+                title="Enter email to send workspace invite (demo only - stored locally)"
+              />
+            </label>
+          )}
         </section>
 
         <section className="sidebar-section activity-section">

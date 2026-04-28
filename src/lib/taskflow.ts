@@ -43,6 +43,37 @@ export type WorkspaceState = {
   boards: BoardRecord[];
   activeBoardId: string | null;
   activity: ActivityEntry[];
+  ownerId?: string;           // Who created this workspace
+  members?: Array<{           // Team members with access
+    userId: string;
+    username: string;
+    role: 'admin' | 'member';
+    joinedAt: string;
+  }>;
+  isShared?: boolean;         // Whether it's a shared team workspace
+};
+
+export type TeamMember = {
+  userId: string;
+  username: string;
+  role: 'admin' | 'member';
+  joinedAt: string;
+};
+
+export type SharedWorkspace = {
+  id: string;
+  name: string;
+  ownerId: string;
+  members: TeamMember[];
+  data: WorkspaceState;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkspaceRef = {
+  type: 'personal' | 'shared';
+  workspaceId: string;
+  name: string;
 };
 
 const USER_STORAGE_KEY = 'taskflow:users';
@@ -163,7 +194,7 @@ export function createActivity(message: string): ActivityEntry {
   };
 }
 
-export function defaultWorkspace(ownerName: string): WorkspaceState {
+export function defaultWorkspace(ownerName: string, ownerId: string, isShared: boolean = false): WorkspaceState {
   const now = nowIso();
 
   return {
@@ -176,5 +207,15 @@ export function defaultWorkspace(ownerName: string): WorkspaceState {
       },
     ],
     boards: [createBoard('Launch Sprint')],
+    ownerId,
+    isShared,
+    members: [
+      {
+        userId: ownerId,
+        username: ownerName,
+        role: 'admin',
+        joinedAt: now,
+      },
+    ],
   };
 }

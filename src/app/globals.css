@@ -288,6 +288,7 @@ textarea {
 
 .board-list,
 .activity-list,
+.members-list,
 .card-list,
 .columns-track {
   display: flex;
@@ -316,6 +317,29 @@ textarea {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: rgba(126, 224, 199, 0.08);
+  border: 1px solid rgba(126, 224, 199, 0.15);
+  font-size: 0.9rem;
+}
+
+.member-name {
+  font-weight: 500;
+  color: #7ee0c7;
+}
+
+.member-role {
+  font-size: 0.75rem;
+  color: rgba(126, 224, 199, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .board-shell {
