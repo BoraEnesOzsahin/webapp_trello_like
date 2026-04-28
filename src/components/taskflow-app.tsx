@@ -130,8 +130,8 @@ export function TaskFlowApp() {
   const [draggedData, setDraggedData] = useState<DragData | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 12 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 12 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
