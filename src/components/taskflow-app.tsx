@@ -274,29 +274,31 @@ export function TaskFlowApp() {
         createdAt: nowIso(),
       };
 
-      const seededWorkspace = defaultWorkspace(newUser.username, newUser.id, true);
-      const initialBoardId = seededWorkspace.boards[0]?.id ?? null;
-
-      // Add team info to workspace
-      const teamWorkspace = {
-        ...seededWorkspace,
-        teamName,
-        teamId: createId('team'),
-        isShared: true,
-      };
+      const seededWorkspace = defaultWorkspace(newUser.username, newUser.id, true, teamName);
 
       setUsers((current) => [...current, newUser]);
       setSessionUserId(newUser.id);
-      setWorkspace({
-        ...teamWorkspace,
-        activeBoardId: initialBoardId,
-        activity: [createActivity(`Team "${teamName}" created by ${newUser.username}`), ...teamWorkspace.activity],
-      });
-      setWorkspace({
+
+      const initialBoardId = seededWorkspace.boards[0]?.id ?? null;
+      const workspaceToSave = {
         ...seededWorkspace,
         activeBoardId: initialBoardId,
-        activity: [createActivity(`Account created for ${newUser.username}`), ...seededWorkspace.activity],
-      });
+        activity: [
+          createActivity(`Team "${teamName}" created by ${newUser.username}`),
+          ...seededWorkspace.activity,
+        ],
+      };
+
+      setWorkspace(workspaceToSave);
+
+      // Sync to Supabase if enabled
+      if (process.env.NEXT_PUBLIC_USE_SUPABASE === 'true') {
+        fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: newUser.id, workspace: workspaceToSave }),
+        }).catch((err) => console.error('Supabase sync error:', err));
+      }
 
       return;
     }
