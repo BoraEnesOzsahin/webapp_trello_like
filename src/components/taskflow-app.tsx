@@ -11,6 +11,7 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  restrictToWindowEdges,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -762,7 +763,7 @@ export function TaskFlowApp() {
             </div>
           </SortableContext>
 
-          <DragOverlay adjustScale={false}>
+          <DragOverlay adjustScale={false} modifiers={[restrictToWindowEdges]}>
             {draggedData?.type === 'card' && activeCardPreview ? (
               <CardPreview card={activeCardPreview as CardRecord} isDragging={true} />
             ) : draggedData?.type === 'column' && activeCardPreview ? (
@@ -865,7 +866,7 @@ function SortableCard({
 
 function CardPreview({ card, isDragging }: { card: CardRecord; isDragging?: boolean }) {
   return (
-    <article className={`card-item ${isDragging ? 'drag-preview' : 'preview'}`}>
+    <article className={`card-item ${isDragging ? 'drag-preview' : 'preview'}`} style={isDragging ? { transform: 'none' } : {}}>
       <strong>{card.title}</strong>
       <p>{card.description || 'No description yet.'}</p>
     </article>

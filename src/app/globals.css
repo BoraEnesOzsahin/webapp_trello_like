@@ -436,6 +436,9 @@ textarea {
   box-shadow: 0 8px 24px rgba(126, 224, 199, 0.3);
   pointer-events: none;
   opacity: 0.95;
+  transform: none !important;
+  scale: 1 !important;
+  rotation: none !important;
 }
 
 .card-handle {
