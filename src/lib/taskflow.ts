@@ -102,6 +102,18 @@ export function createId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+export function createUuid() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = char === 'x' ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
 export function nowIso() {
   return new Date().toISOString();
 }
@@ -211,7 +223,7 @@ export function defaultWorkspace(ownerName: string, ownerId: string, isShared: b
     boards: [createBoard('Launch Sprint')],
     ownerId,
     teamName: teamName || `${ownerName}'s Team`,
-    teamId: createId('team'),
+    teamId: createUuid(),
     isShared,
     members: [
       {

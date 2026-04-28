@@ -131,6 +131,8 @@ export function TaskFlowApp() {
   const [columnTitle, setColumnTitle] = useState('');
   const [cardDraft, setCardDraft] = useState<CardDraft | null>(null);
   const [draggedData, setDraggedData] = useState<DragData | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteFeedback, setInviteFeedback] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 12 } }),
@@ -308,27 +310,55 @@ export function TaskFlowApp() {
     const passwordHash = await hashPassword(password);
 
     if (authMode === 'signup') {
-      if (users.some((user) => user.email === email)) {
-        setAuthError('Bu e-posta zaten kayıtlı.');
-        return;
-      }
+      let newUser: UserRecord;
 
-      if (users.some((user) => user.username === username)) {
-        setAuthError('Bu kullanıcı adı zaten alınmış.');
-        return;
-      }
+      if (useServer) {
+        const signupResponse = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ mode: 'signup', username, email, passwordHash }),
+        });
 
-      const newUser: UserRecord = {
-        id: createId('user'),
-        username,
-        email,
-        passwordHash,
-        createdAt: nowIso(),
-      };
+        const signupResult = await signupResponse.json();
+        if (!signupResponse.ok) {
+          setAuthError(signupResult?.error ?? 'Kayit olurken bir hata olustu.');
+          return;
+        }
+
+        const serverUser = signupResult?.user;
+        newUser = {
+          id: serverUser.id,
+          username: serverUser.username,
+          email: serverUser.email,
+          passwordHash,
+          createdAt: serverUser.created_at ?? nowIso(),
+        };
+      } else {
+        if (users.some((user) => user.email === email)) {
+          setAuthError('Bu e-posta zaten kayıtlı.');
+          return;
+        }
+
+        if (users.some((user) => user.username === username)) {
+          setAuthError('Bu kullanıcı adı zaten alınmış.');
+          return;
+        }
+
+        newUser = {
+          id: createId('user'),
+          username,
+          email,
+          passwordHash,
+          createdAt: nowIso(),
+        };
+      }
 
       const seededWorkspace = defaultWorkspace(newUser.username, newUser.id, true, teamName);
 
-      setUsers((current) => [...current, newUser]);
+      setUsers((current) => {
+        const withoutDuplicate = current.filter((item) => item.id !== newUser.id && item.email !== newUser.email);
+        return [...withoutDuplicate, newUser];
+      });
       setSessionUserId(newUser.id);
 
       const initialBoardId = seededWorkspace.boards[0]?.id ?? null;
@@ -355,7 +385,35 @@ export function TaskFlowApp() {
       return;
     }
 
-    const user = users.find((item) => item.email === email && item.passwordHash === passwordHash);
+    let user = users.find((item) => item.email === email && item.passwordHash === passwordHash);
+
+    if (useServer) {
+      const loginResponse = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ mode: 'login', email, passwordHash }),
+      });
+
+      const loginResult = await loginResponse.json();
+      if (!loginResponse.ok) {
+        setAuthError(loginResult?.error ?? 'E-posta veya parola hatalı.');
+        return;
+      }
+
+      const serverUser = loginResult?.user;
+      user = {
+        id: serverUser.id,
+        username: serverUser.username,
+        email: serverUser.email,
+        passwordHash,
+        createdAt: serverUser.created_at ?? nowIso(),
+      };
+
+      setUsers((current) => {
+        const withoutDuplicate = current.filter((item) => item.id !== user!.id && item.email !== user!.email);
+        return [...withoutDuplicate, user!];
+      });
+    }
 
     if (!user) {
       setAuthError('E-posta veya parola hatalı.');
@@ -370,13 +428,101 @@ export function TaskFlowApp() {
       ...fallbackWorkspace,
       activeBoardId: fallbackWorkspace.activeBoardId ?? fallbackWorkspace.boards[0]?.id ?? null,
     });
+
+    if (useServer) {
+      fetch(`/api/workspace?userId=${encodeURIComponent(user.id)}`)
+        .then(async (response) => {
+          if (!response.ok) {
+            return;
+          }
+
+          const serverWorkspace = await response.json();
+          if (serverWorkspace) {
+            setWorkspace(serverWorkspace as WorkspaceState);
+          }
+        })
+        .catch(() => {
+          /* ignore network errors */
+        });
+    }
   }
 
   function signOut() {
     setSessionUserId(null);
     setWorkspace(null);
     setCardDraft(null);
+    setInviteEmail('');
+    setInviteFeedback(null);
     setAuthForm({ username: '', email: '', password: '', teamName: '' });
+  }
+
+  async function handleInviteMember(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!workspace || !currentUser || workspace.ownerId !== currentUser.id) {
+      return;
+    }
+
+    const normalizedEmail = inviteEmail.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setInviteFeedback('Lutfen bir e-posta gir.');
+      return;
+    }
+
+    let invitedUser = users.find((user) => user.email === normalizedEmail);
+
+    if (useServer) {
+      const lookupResponse = await fetch(`/api/users?email=${encodeURIComponent(normalizedEmail)}`);
+      if (lookupResponse.ok) {
+        const lookupUser = await lookupResponse.json();
+        if (lookupUser) {
+          invitedUser = {
+            id: lookupUser.id,
+            username: lookupUser.username,
+            email: lookupUser.email,
+            passwordHash: '',
+            createdAt: lookupUser.created_at ?? nowIso(),
+          };
+        }
+      }
+    }
+
+    if (!invitedUser) {
+      setInviteFeedback('Bu e-posta ile kayitli kullanici bulunamadi.');
+      return;
+    }
+
+    if (invitedUser.id === currentUser.id) {
+      setInviteFeedback('Kendini davet etmene gerek yok.');
+      return;
+    }
+
+    const alreadyMember = workspace.members?.some((member) => member.userId === invitedUser.id);
+    if (alreadyMember) {
+      setInviteFeedback('Bu kullanici zaten team uyesi.');
+      return;
+    }
+
+    const nextWorkspace: WorkspaceState = {
+      ...workspace,
+      members: [
+        ...(workspace.members ?? []),
+        {
+          userId: invitedUser.id,
+          username: invitedUser.username,
+          role: 'member',
+          joinedAt: nowIso(),
+        },
+      ],
+      activity: [
+        createActivity(`${invitedUser.username} team'e davet edildi`),
+        ...workspace.activity,
+      ].slice(0, 30),
+    };
+
+    setWorkspace(nextWorkspace);
+    setInviteEmail('');
+    setInviteFeedback(`Davet gonderildi: ${invitedUser.username}`);
   }
 
   function selectBoard(boardId: string) {
@@ -808,14 +954,22 @@ export function TaskFlowApp() {
             ))}
           </div>
           {workspace.ownerId === currentUser?.id && (
-            <label className="inline-field">
-              <span>Invite by email</span>
-              <input
-                type="email"
-                placeholder="teammate@example.com"
-                title="Enter email to send workspace invite (demo only - stored locally)"
-              />
-            </label>
+            <form onSubmit={handleInviteMember}>
+              <label className="inline-field">
+                <span>Invite by email</span>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(event) => {
+                    setInviteEmail(event.target.value);
+                    setInviteFeedback(null);
+                  }}
+                  placeholder="teammate@example.com"
+                />
+              </label>
+              <button className="secondary-button" type="submit">Invite</button>
+              {inviteFeedback ? <p className="helper-note">{inviteFeedback}</p> : null}
+            </form>
           )}
         </section>
 

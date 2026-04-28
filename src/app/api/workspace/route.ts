@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const userId = url.searchParams.get('userId');
@@ -29,20 +31,38 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: personalError.message }, { status: 500 });
     }
 
-    // Then fetch shared workspaces where user is a member
-    const { data: sharedData, error: sharedError } = await supabaseAdmin
-      .from('shared_workspaces')
-      .select('data')
-      .filter('data->members', 'cs', JSON.stringify([{ userId }]));
+    // Then fetch shared workspaces where user is listed in workspace_members
+    const { data: membershipRows, error: membershipError } = await supabaseAdmin
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', userId);
 
-    if (sharedError) {
-      console.error('Shared workspace fetch error:', sharedError);
-      // Don't fail if shared workspaces query fails, just return personal
+    if (membershipError) {
+      console.error('Workspace membership fetch error:', membershipError);
+      return NextResponse.json((personalData as any)?.data ?? null);
+    }
+
+    const workspaceIds = (membershipRows ?? []).map((row: any) => row.workspace_id);
+
+    let sharedWorkspace: any = null;
+    if (workspaceIds.length > 0) {
+      const { data: sharedData, error: sharedError } = await supabaseAdmin
+        .from('shared_workspaces')
+        .select('data')
+        .in('id', workspaceIds)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (sharedError) {
+        console.error('Shared workspace fetch error:', sharedError);
+      } else {
+        sharedWorkspace = (sharedData as any)?.data ?? null;
+      }
     }
 
     // Return personal workspace if available, otherwise first shared workspace
     const personalWorkspace = (personalData as any)?.data ?? null;
-    const sharedWorkspace = sharedData && sharedData.length > 0 ? (sharedData[0] as any).data : null;
 
     return NextResponse.json(personalWorkspace ?? sharedWorkspace);
   } catch (err: any) {
@@ -83,6 +103,26 @@ export async function POST(req: Request) {
 
       if (sharedError) {
         return NextResponse.json({ error: sharedError.message }, { status: 500 });
+      }
+
+      const members = Array.isArray(workspace.members) ? workspace.members : [];
+      const memberRows = members
+        .filter((member: any) => typeof member?.userId === 'string' && UUID_PATTERN.test(member.userId))
+        .map((member: any) => ({
+          workspace_id: workspace.teamId,
+          user_id: member.userId,
+          role: member.role === 'admin' ? 'admin' : 'member',
+          joined_at: member.joinedAt || new Date().toISOString(),
+        }));
+
+      if (memberRows.length > 0) {
+        const { error: memberUpsertError } = await supabaseAdmin
+          .from('workspace_members')
+          .upsert(memberRows, { onConflict: 'workspace_id,user_id' });
+
+        if (memberUpsertError) {
+          return NextResponse.json({ error: memberUpsertError.message }, { status: 500 });
+        }
       }
 
       return NextResponse.json({ ok: true, workspace: 'shared' });

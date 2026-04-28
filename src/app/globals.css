@@ -281,6 +281,12 @@ select option {
   margin: 0;
 }
 
+.helper-note {
+  color: rgba(169, 183, 218, 0.9);
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+}
+
 .workspace-shell {
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr);
