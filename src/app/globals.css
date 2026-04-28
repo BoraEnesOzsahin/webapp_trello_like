@@ -441,6 +441,21 @@ textarea {
   rotation: none !important;
 }
 
+.card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(126, 224, 199, 0.2);
+  font-size: 0.75rem;
+  color: rgba(126, 224, 199, 0.8);
+}
+
+.card-meta small {
+  display: block;
+}
+
 .card-handle {
   width: 34px;
   height: 34px;

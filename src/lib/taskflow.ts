@@ -1,7 +1,7 @@
 export type UserRecord = {
   id: string;
-  name: string;
   email: string;
+  username: string;
   passwordHash: string;
   createdAt: string;
 };
@@ -10,6 +10,10 @@ export type CardRecord = {
   id: string;
   title: string;
   description: string;
+  creatorId: string;      // Who created this card
+  creatorName?: string;   // Creator's username (for display)
+  assigneeId?: string;    // Who this is assigned to
+  assigneeName?: string;  // Assignee's username (for display)
   createdAt: string;
   updatedAt: string;
 };
@@ -137,13 +141,15 @@ export function createColumn(title: string) {
   };
 }
 
-export function createCard(title: string, description: string) {
+export function createCard(title: string, description: string, creatorId: string, creatorName?: string) {
   const now = nowIso();
 
   return {
     id: createId('card'),
     title,
     description,
+    creatorId,
+    creatorName,
     createdAt: now,
     updatedAt: now,
   } satisfies CardRecord;

@@ -47,7 +47,7 @@ import {
 type AuthMode = 'login' | 'signup';
 
 type AuthFormState = {
-  name: string;
+  username: string;
   email: string;
   password: string;
 };
@@ -239,11 +239,11 @@ export function TaskFlowApp() {
     event.preventDefault();
     setAuthError(null);
 
-    const name = authForm.name.trim();
+    const username = authForm.username.trim();
     const email = authForm.email.trim().toLowerCase();
     const password = authForm.password.trim();
 
-    if (!email || !password || (authMode === 'signup' && !name)) {
+    if (!email || !password || (authMode === 'signup' && !username)) {
       setAuthError('Tüm alanları doldur.');
       return;
     }
@@ -256,15 +256,20 @@ export function TaskFlowApp() {
         return;
       }
 
+      if (users.some((user) => user.username === username)) {
+        setAuthError('Bu kullanıcı adı zaten alınmış.');
+        return;
+      }
+
       const newUser: UserRecord = {
         id: createId('user'),
-        name,
+        username,
         email,
         passwordHash,
         createdAt: nowIso(),
       };
 
-      const seededWorkspace = defaultWorkspace(newUser.name);
+      const seededWorkspace = defaultWorkspace(newUser.username);
       const initialBoardId = seededWorkspace.boards[0]?.id ?? null;
 
       setUsers((current) => [...current, newUser]);
@@ -272,7 +277,7 @@ export function TaskFlowApp() {
       setWorkspace({
         ...seededWorkspace,
         activeBoardId: initialBoardId,
-        activity: [createActivity(`Account created for ${newUser.name}`), ...seededWorkspace.activity],
+        activity: [createActivity(`Account created for ${newUser.username}`), ...seededWorkspace.activity],
       });
 
       return;
@@ -286,7 +291,7 @@ export function TaskFlowApp() {
     }
 
     const loadedWorkspace = readStorage<WorkspaceState | null>(workspaceStorageKey(user.id), null);
-    const fallbackWorkspace = loadedWorkspace ?? defaultWorkspace(user.name);
+    const fallbackWorkspace = loadedWorkspace ?? defaultWorkspace(user.username);
 
     setSessionUserId(user.id);
     setWorkspace({
@@ -299,7 +304,7 @@ export function TaskFlowApp() {
     setSessionUserId(null);
     setWorkspace(null);
     setCardDraft(null);
-    setAuthForm({ name: '', email: '', password: '' });
+    setAuthForm({ username: '', email: '', password: '' });
   }
 
   function selectBoard(boardId: string) {
@@ -472,7 +477,7 @@ export function TaskFlowApp() {
 
             return {
               ...column,
-              cards: [...column.cards, createCard(title, description)],
+              cards: [...column.cards, createCard(title, description, currentUser!.id, currentUser!.username)],
             };
           }),
         };
@@ -611,11 +616,11 @@ export function TaskFlowApp() {
           <form onSubmit={handleAuthSubmit} className="auth-form">
             {authMode === 'signup' ? (
               <label>
-                Name
+                Username
                 <input
-                  value={authForm.name}
-                  onChange={(event) => setAuthForm((current) => ({ ...current, name: event.target.value }))}
-                  placeholder="Ada Team"
+                  value={authForm.username}
+                  onChange={(event) => setAuthForm((current) => ({ ...current, username: event.target.value }))}
+                  placeholder="ada_team"
                 />
               </label>
             ) : null}
@@ -659,7 +664,7 @@ export function TaskFlowApp() {
         <div className="brand-block">
           <div>
             <div className="eyebrow">TaskFlow</div>
-            <h2>{currentUser.name}</h2>
+            <h2>{currentUser.username}</h2>
             <p>{currentUser.email}</p>
           </div>
           <button className="ghost-button" onClick={signOut} type="button">
@@ -858,6 +863,12 @@ function SortableCard({
       <button className="card-body" type="button" onClick={() => onEditCard(card, columnId)}>
         <strong>{card.title}</strong>
         <p>{card.description || 'No description yet.'}</p>
+        {card.creatorName && (
+          <div className="card-meta">
+            <small>by {card.creatorName}</small>
+            {card.assigneeName && <small>→ {card.assigneeName}</small>}
+          </div>
+        )}
       </button>
     </article>
   );
@@ -868,6 +879,12 @@ function CardPreview({ card, isDragging }: { card: CardRecord; isDragging?: bool
     <article className={`card-item ${isDragging ? 'drag-preview' : 'preview'}`} style={isDragging ? { transform: 'none' } : {}}>
       <strong>{card.title}</strong>
       <p>{card.description || 'No description yet.'}</p>
+      {card.creatorName && (
+        <div className="card-meta">
+          <small>by {card.creatorName}</small>
+          {card.assigneeName && <small>→ {card.assigneeName}</small>}
+        </div>
+      )}
     </article>
   );
 }
