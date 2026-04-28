@@ -44,13 +44,15 @@ export type WorkspaceState = {
   activeBoardId: string | null;
   activity: ActivityEntry[];
   ownerId?: string;           // Who created this workspace
+  teamName?: string;          // Team/workspace name
+  teamId?: string;            // Unique team ID
+  isShared?: boolean;         // Whether it's a shared team workspace
   members?: Array<{           // Team members with access
     userId: string;
     username: string;
     role: 'admin' | 'member';
     joinedAt: string;
   }>;
-  isShared?: boolean;         // Whether it's a shared team workspace
 };
 
 export type TeamMember = {
@@ -194,7 +196,7 @@ export function createActivity(message: string): ActivityEntry {
   };
 }
 
-export function defaultWorkspace(ownerName: string, ownerId: string, isShared: boolean = false): WorkspaceState {
+export function defaultWorkspace(ownerName: string, ownerId: string, isShared: boolean = false, teamName?: string): WorkspaceState {
   const now = nowIso();
 
   return {
@@ -208,6 +210,8 @@ export function defaultWorkspace(ownerName: string, ownerId: string, isShared: b
     ],
     boards: [createBoard('Launch Sprint')],
     ownerId,
+    teamName: teamName || `${ownerName}'s Team`,
+    teamId: createId('team'),
     isShared,
     members: [
       {

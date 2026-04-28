@@ -50,6 +50,7 @@ type AuthFormState = {
   username: string;
   email: string;
   password: string;
+  teamName?: string;
 };
 
 type CardDraft = {
@@ -124,6 +125,7 @@ export function TaskFlowApp() {
     username: '',
     email: '',
     password: '',
+    teamName: '',
   });
   const [boardTitle, setBoardTitle] = useState('');
   const [columnTitle, setColumnTitle] = useState('');
@@ -244,8 +246,9 @@ export function TaskFlowApp() {
     const username = authForm.username.trim();
     const email = authForm.email.trim().toLowerCase();
     const password = authForm.password.trim();
+    const teamName = authForm.teamName?.trim();
 
-    if (!email || !password || (authMode === 'signup' && !username)) {
+    if (!email || !password || (authMode === 'signup' && (!username || !teamName))) {
       setAuthError('Tüm alanları doldur.');
       return;
     }
@@ -271,11 +274,24 @@ export function TaskFlowApp() {
         createdAt: nowIso(),
       };
 
-      const seededWorkspace = defaultWorkspace(newUser.username, newUser.id, false);
+      const seededWorkspace = defaultWorkspace(newUser.username, newUser.id, true);
       const initialBoardId = seededWorkspace.boards[0]?.id ?? null;
+
+      // Add team info to workspace
+      const teamWorkspace = {
+        ...seededWorkspace,
+        teamName,
+        teamId: createId('team'),
+        isShared: true,
+      };
 
       setUsers((current) => [...current, newUser]);
       setSessionUserId(newUser.id);
+      setWorkspace({
+        ...teamWorkspace,
+        activeBoardId: initialBoardId,
+        activity: [createActivity(`Team "${teamName}" created by ${newUser.username}`), ...teamWorkspace.activity],
+      });
       setWorkspace({
         ...seededWorkspace,
         activeBoardId: initialBoardId,
@@ -306,7 +322,7 @@ export function TaskFlowApp() {
     setSessionUserId(null);
     setWorkspace(null);
     setCardDraft(null);
-    setAuthForm({ username: '', email: '', password: '' });
+    setAuthForm({ username: '', email: '', password: '', teamName: '' });
   }
 
   function selectBoard(boardId: string) {
@@ -628,14 +644,25 @@ export function TaskFlowApp() {
 
           <form onSubmit={handleAuthSubmit} className="auth-form">
             {authMode === 'signup' ? (
-              <label>
-                Username
-                <input
-                  value={authForm.username}
-                  onChange={(event) => setAuthForm((current) => ({ ...current, username: event.target.value }))}
-                  placeholder="ada_team"
-                />
-              </label>
+              <>
+                <label>
+                  Username
+                  <input
+                    value={authForm.username}
+                    onChange={(event) => setAuthForm((current) => ({ ...current, username: event.target.value }))}
+                    placeholder="ada_team"
+                  />
+                </label>
+
+                <label>
+                  Team Name
+                  <input
+                    value={authForm.teamName}
+                    onChange={(event) => setAuthForm((current) => ({ ...current, teamName: event.target.value }))}
+                    placeholder="Ada's Team"
+                  />
+                </label>
+              </>
             ) : null}
 
             <label>
@@ -677,8 +704,9 @@ export function TaskFlowApp() {
         <div className="brand-block">
           <div>
             <div className="eyebrow">TaskFlow</div>
-            <h2>{currentUser.username}</h2>
-            <p>{currentUser.email}</p>
+            <h2>{workspace?.teamName}</h2>
+            <p>{currentUser.username}</p>
+            <small style={{ color: 'rgba(169, 183, 218, 0.6)' }}>{currentUser.email}</small>
           </div>
           <button className="ghost-button" onClick={signOut} type="button">
             Sign out
