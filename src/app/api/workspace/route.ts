@@ -17,14 +17,37 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Supabase client unavailable' }, { status: 500 });
   }
 
-  const { data, error } = await supabaseAdmin.from('workspaces').select('data').eq('user_id', userId).maybeSingle();
+  try {
+    // First try to fetch personal workspace
+    const { data: personalData, error: personalError } = await supabaseAdmin
+      .from('workspaces')
+      .select('data')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (personalError && personalError.code !== 'PGRST116') {
+      return NextResponse.json({ error: personalError.message }, { status: 500 });
+    }
+
+    // Then fetch shared workspaces where user is a member
+    const { data: sharedData, error: sharedError } = await supabaseAdmin
+      .from('shared_workspaces')
+      .select('data')
+      .filter('data->members', 'cs', JSON.stringify([{ userId }]));
+
+    if (sharedError) {
+      console.error('Shared workspace fetch error:', sharedError);
+      // Don't fail if shared workspaces query fails, just return personal
+    }
+
+    // Return personal workspace if available, otherwise first shared workspace
+    const personalWorkspace = (personalData as any)?.data ?? null;
+    const sharedWorkspace = sharedData && sharedData.length > 0 ? (sharedData[0] as any).data : null;
+
+    return NextResponse.json(personalWorkspace ?? sharedWorkspace);
+  } catch (err: any) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-
-  const row = data as any;
-  return NextResponse.json(row?.data ?? null);
 }
 
 export async function POST(req: Request) {
