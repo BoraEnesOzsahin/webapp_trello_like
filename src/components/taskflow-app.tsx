@@ -11,7 +11,6 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-  restrictToWindowEdges,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -763,7 +762,7 @@ export function TaskFlowApp() {
             </div>
           </SortableContext>
 
-          <DragOverlay adjustScale={false} modifiers={[restrictToWindowEdges]}>
+          <DragOverlay adjustScale={false}>
             {draggedData?.type === 'card' && activeCardPreview ? (
               <CardPreview card={activeCardPreview as CardRecord} isDragging={true} />
             ) : draggedData?.type === 'column' && activeCardPreview ? (
